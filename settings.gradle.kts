@@ -5,4 +5,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "fritz2-template"
+rootProject.name = "glubot-backoffice"
