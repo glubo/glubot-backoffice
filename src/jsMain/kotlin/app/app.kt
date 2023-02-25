@@ -10,7 +10,11 @@ import dev.fritz2.remote.Authentication
 import dev.fritz2.remote.Request
 import dev.fritz2.remote.http
 import kotlinx.browser.window
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.serialization.json.*
+import model.Config
 import model.Framework
 import model.Principal
 import model.Token
@@ -21,7 +25,7 @@ import org.w3c.dom.url.URLSearchParams
 class GlubotAuthentication(
     val authEndpointURL: URL,
     val redirectUri: String,
-    val tokenStore: Store<Token?>
+    val tokenStore: Store<Token?>,
 ) : Authentication<Principal>() {
 
     override fun addAuthentication(request: Request, principal: Principal?): Request {
@@ -43,14 +47,20 @@ class GlubotAuthentication(
     }
 }
 
+suspend fun loadConfig(): Config {
+    val configEndpoint = http("/")
+    val response = configEndpoint.get("config.json")
+    return Json.decodeFromString(Config.serializer(), response.body())
+}
+
 fun main() {
     val frameworkStore = storeOf(Framework("fritz2"))
     val name = frameworkStore.map(Framework.name())
-    val openIdConnectBaseUri = "https://keycloak.glubo.cz/realms/glubot/protocol/openid-connect"
-    val redirectUri = "http://localhost:8081/"
+//    val config = loadConfig()
+    val config = Config()
 
-    val tokenEndpointUri = "$openIdConnectBaseUri/token"
-    val authEndpointUri = "$openIdConnectBaseUri/auth"
+    val tokenEndpointUri = "${config.openIdConnectBaseUri}/token"
+    val authEndpointUri = "${config.openIdConnectBaseUri}/auth"
 
     val tokenStore = object : RootStore<Token?>(null) {
         val checkState = handle { it ->
@@ -62,14 +72,14 @@ fun main() {
                 val response = tokenEndpoint
                     .body(
                         URLSearchParams()
-                        .let {
-                            it.append("grant_type", "authorization_code")
-                            it.append("code", code)
-                            it.append("redirect_uri", redirectUri)
-                            it.append("client_id", "postman")
-                            it.append("client_secret", "")
-                            it
-                        }.toString()
+                            .let {
+                                it.append("grant_type", "authorization_code")
+                                it.append("code", code)
+                                it.append("redirect_uri", config.redirectUri)
+                                it.append("client_id", config.openIdClientId)
+                                it.append("client_secret", config.openIdClientSecret)
+                                it
+                            }.toString()
                     )
                     .contentType("application/x-www-form-urlencoded")
                     .post()
@@ -82,16 +92,17 @@ fun main() {
 
     val glubotAuthentication = GlubotAuthentication(
         authEndpointURL = URL(authEndpointUri),
-        redirectUri = redirectUri,
+        redirectUri = config.redirectUri,
         tokenStore = tokenStore,
     )
 
     val userStore = object : RootStore<String>("") {
 
-        val users = http("http://localhost:8080/hello").use(glubotAuthentication)
+        val users = http(config.hiveUri + "/hello").use(glubotAuthentication)
 
         val loadAllUsers = handle {
             try {
+                console.info("Loading...")
                 users.get().body()
 //            } catch (e: FetchException) {
 //                e.toString() + ": " + e.toString()

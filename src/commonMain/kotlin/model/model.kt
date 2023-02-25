@@ -49,3 +49,15 @@ data class Token(
 ) {
     companion object
 }
+
+@Lenses
+@Serializable
+data class Config(
+    val openIdConnectBaseUri: String = "https://keycloak.glubo.cz/realms/glubot/protocol/openid-connect",
+    val openIdClientId: String = "postman",
+    val openIdClientSecret: String = "",
+    val redirectUri: String = "http://localhost:8081/",
+    val hiveUri: String = "http://localhost:8080",
+) {
+    companion object
+}
