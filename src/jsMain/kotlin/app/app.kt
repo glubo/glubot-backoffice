@@ -9,6 +9,8 @@ import dev.fritz2.remote.Authentication
 //import dev.fritz2.remote.FetchException
 import dev.fritz2.remote.Request
 import dev.fritz2.remote.http
+import kotlinx.browser.document
+import kotlinx.browser.localStorage
 import kotlinx.browser.window
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.GlobalScope
@@ -83,7 +85,20 @@ fun main() {
                     )
                     .contentType("application/x-www-form-urlencoded")
                     .post()
-                Json.decodeFromString(Token.serializer(), response.body())
+
+                val tokenJson = response.body()
+                localStorage.setItem("klicky", tokenJson)
+                window.location.href = url.let {
+                    it.searchParams.delete("session_state")
+                    it.searchParams.delete("code")
+                    it
+                }.toString()
+                val token = Json.decodeFromString(Token.serializer(), tokenJson)
+                token
+            } else if(localStorage.getItem("klicky") != null) {
+                val tokenJson = localStorage.getItem("klicky")!!
+                val token = Json.decodeFromString(Token.serializer(), tokenJson)
+                token
             } else {
                 it
             }
