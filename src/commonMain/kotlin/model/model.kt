@@ -59,5 +59,13 @@ data class Config(
     val redirectUri: String = "http://localhost:8081/",
     val hiveUri: String = "http://localhost:8080",
 ) {
-    companion object
+    companion object {
+        fun fromMap(map: dynamic) = Config(
+            openIdConnectBaseUri = map.openIdConnectBaseUri,
+            openIdClientId = map.openIdClientId,
+            openIdClientSecret = map.openIdClientSecret,
+            redirectUri = map.redirectUri,
+            hiveUri = map.hiveUri,
+        )
+    }
 }

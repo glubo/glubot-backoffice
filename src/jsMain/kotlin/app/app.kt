@@ -55,11 +55,12 @@ suspend fun loadConfig(): Config {
     return Json.decodeFromString(Config.serializer(), response.body())
 }
 
+external val glubotConfig: dynamic
+
 fun main() {
     val frameworkStore = storeOf(Framework("fritz2"))
     val name = frameworkStore.map(Framework.name())
-//    val config = loadConfig()
-    val config = Config()
+    val config = Config.fromMap(glubotConfig)
 
     val tokenEndpointUri = "${config.openIdConnectBaseUri}/token"
     val authEndpointUri = "${config.openIdConnectBaseUri}/auth"
